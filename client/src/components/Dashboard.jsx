@@ -1,6 +1,7 @@
 import { socket } from "../socket";
-import { LogOut, BarChart3, Users, Clock, User, CheckCircle2, ChevronRight, Loader2, Search, Filter, Settings } from "lucide-react";
+import { LogOut, BarChart3, Users, Clock, User, CheckCircle2, ChevronRight, Loader2, Search, Filter, Settings, Plus, Power, Trash2 } from "lucide-react";
 import VoteModal from "./VoteModal";
+import CreatePollModal from "./CreatePollModal";
 import ProfileModal from "./ProfileModal";
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -11,6 +12,7 @@ export default function Dashboard({ user, token, onLogout }) {
     const [loading, setLoading] = useState(true);
     const [selectedPoll, setSelectedPoll] = useState(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     // Pagination & Sorting State
     const [currentPage, setCurrentPage] = useState(1);
@@ -140,6 +142,57 @@ export default function Dashboard({ user, token, onLogout }) {
         }
     };
 
+    const handleCreatePoll = async (pollData) => {
+        const res = await fetch("/api/sondages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: token,
+            },
+            body: JSON.stringify(pollData),
+        });
+
+        if (res.ok) {
+            fetchPolls();
+        } else {
+            throw new Error("Creation failed");
+        }
+    };
+
+    const handleDeletePoll = async (id) => {
+        if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce sondage ? Cette action est irréversible.")) return;
+        try {
+            const res = await fetch(`/api/sondages/${id}`, {
+                method: "DELETE",
+                headers: { Authorization: token },
+            });
+            if (res.ok) {
+                setSondages(sondages.filter(s => s._id !== id));
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleToggleStatus = async (poll) => {
+        const newStatus = poll.status === "closed" ? "open" : "closed";
+        try {
+            const res = await fetch(`/api/sondages/${poll._id}/status`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: token,
+                },
+                body: JSON.stringify({ status: newStatus }),
+            });
+            if (res.ok) {
+                setSondages(sondages.map(s => s._id === poll._id ? { ...s, status: newStatus } : s));
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <div className="min-h-screen pb-20">
             {/* Navbar */}
@@ -219,6 +272,14 @@ export default function Dashboard({ user, token, onLogout }) {
                                     <option value="closed">Fermés</option>
                                 </select>
                             </div>
+
+                            <button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="flex items-center justify-center gap-2 px-6 py-2 rounded-xl bg-gradient-to-r from-primary to-purple-600 text-white font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all whitespace-nowrap"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Créer
+                            </button>
                         </div>
                     </div>
 
@@ -233,8 +294,11 @@ export default function Dashboard({ user, token, onLogout }) {
                                     <PollCard
                                         key={sondage._id}
                                         sondage={sondage}
+                                        currentUserId={user ? (user.userId || user.id || user._id) : null} // Pass User ID to Check Ownership
                                         hasVoted={votedIds.includes(sondage._id)}
                                         onGenericVoteClick={() => setSelectedPoll(sondage)} // Open Modal
+                                        onDelete={() => handleDeletePoll(sondage._id)}
+                                        onToggleStatus={() => handleToggleStatus(sondage)}
                                         index={index}
                                     />
                                 ))}
@@ -290,6 +354,13 @@ export default function Dashboard({ user, token, onLogout }) {
                     onClose={() => setIsProfileOpen(false)}
                 />
             )}
+
+            {isCreateModalOpen && (
+                <CreatePollModal
+                    onClose={() => setIsCreateModalOpen(false)}
+                    onCreate={handleCreatePoll}
+                />
+            )}
         </div>
     );
 }
@@ -313,8 +384,9 @@ function StatCard({ icon: Icon, value, label, iconBg, iconColor }) {
     );
 }
 
-function PollCard({ sondage, hasVoted, onGenericVoteClick, index }) {
+function PollCard({ sondage, hasVoted, onGenericVoteClick, onDelete, onToggleStatus, currentUserId, index }) {
     const totalVotes = sondage.options.reduce((acc, opt) => acc + opt.votes, 0);
+    const isOwner = sondage.createdById && currentUserId && sondage.createdById === currentUserId;
 
     return (
         <motion.div
@@ -372,12 +444,12 @@ function PollCard({ sondage, hasVoted, onGenericVoteClick, index }) {
             </div>
 
             {/* Action Footer */}
-            <div className="pt-4 border-t border-white/20">
+            <div className="pt-4 border-t border-white/20 flex gap-3">
                 {!hasVoted ? (
                     <button
                         onClick={onGenericVoteClick}
                         disabled={sondage.status === "closed"}
-                        className={`w-full py-3.5 rounded-xl text-white font-bold text-shadow shadow-lg transition-all ${sondage.status === "closed"
+                        className={`flex-grow py-3.5 rounded-xl text-white font-bold text-shadow shadow-lg transition-all ${sondage.status === "closed"
                             ? "bg-slate-300 cursor-not-allowed shadow-none"
                             : "bg-gradient-to-r from-primary to-purple-600 shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98]"
                             }`}
@@ -385,9 +457,31 @@ function PollCard({ sondage, hasVoted, onGenericVoteClick, index }) {
                         {sondage.status === "closed" ? "Vote Clos" : "Voter"}
                     </button>
                 ) : (
-                    <div className="w-full py-3.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 font-bold flex items-center justify-center gap-2">
+                    <div className="flex-grow py-3.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 font-bold flex items-center justify-center gap-2">
                         <CheckCircle2 className="w-5 h-5" />
                         Voté
+                    </div>
+                )}
+
+                {isOwner && (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onToggleStatus(); }}
+                            title={sondage.status === "closed" ? "Réouvrir" : "Fermer"}
+                            className={`p-3.5 rounded-xl border transition-all ${sondage.status === "closed"
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                                : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100"
+                                }`}
+                        >
+                            <Power className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                            title="Supprimer"
+                            className="p-3.5 rounded-xl bg-red-50 text-red-500 border border-red-100 hover:bg-red-100/80 hover:border-red-200 transition-all"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                        </button>
                     </div>
                 )}
             </div>

@@ -184,6 +184,7 @@ app.post("/api/login", async (req, res) => {
       message: "Connexion réussie",
       token,
       user: {
+        userId: user._id, // Critical: Needed for frontend ownership checks
         nomUtilisateur: user.nomUtilisateur,
         fullName: user.fullName, // Send it back too just in case
         role: user.role
@@ -316,7 +317,7 @@ app.post("/api/vote", verifyToken, async (req, res) => {
 });
 
 // ROUTES ADMIN (CREATE / DELETE)
-app.post("/api/sondages", verifyToken, verifyAdmin, async (req, res) => {
+app.post("/api/sondages", verifyToken, async (req, res) => {
   try {
     const { question, options, closingDate } = req.body;
     // Validation basique
@@ -334,6 +335,7 @@ app.post("/api/sondages", verifyToken, verifyAdmin, async (req, res) => {
       question,
       options: formattedOptions,
       createdBy: creatorName,
+      createdById: req.user.userId, // Link to creator
       status: "open", // Default status
       dateCreation: new Date(),
       closingDate: closingDate ? new Date(closingDate) : null
@@ -350,13 +352,24 @@ app.post("/api/sondages", verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
-app.patch("/api/sondages/:id/status", verifyToken, verifyAdmin, async (req, res) => {
+app.patch("/api/sondages/:id/status", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body; // "open" or "closed"
 
     if (!["open", "closed"].includes(status)) {
       return res.status(400).json({ error: "Statut invalide" });
+    }
+
+    const poll = await sondageCollection.findOne({ _id: new ObjectId(id) });
+    if (!poll) return res.status(404).json({ error: "Sondage introuvable" });
+
+    // Allow if Admin OR Owner
+    const isOwner = poll.createdById && poll.createdById === req.user.userId;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "Action non autorisée" });
     }
 
     const updateFields = { status };
@@ -379,9 +392,21 @@ app.patch("/api/sondages/:id/status", verifyToken, verifyAdmin, async (req, res)
   }
 });
 
-app.delete("/api/sondages/:id", verifyToken, verifyAdmin, async (req, res) => {
+app.delete("/api/sondages/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    const poll = await sondageCollection.findOne({ _id: new ObjectId(id) });
+    if (!poll) return res.status(404).json({ error: "Sondage introuvable" });
+
+    // Allow if Admin OR Owner
+    const isOwner = poll.createdById && poll.createdById === req.user.userId;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: "Action non autorisée" });
+    }
+
     await sondageCollection.deleteOne({ _id: new ObjectId(id) });
     // Cleanup des votes orphelins
     await votesCollection.deleteMany({ sondageId: new ObjectId(id) });
