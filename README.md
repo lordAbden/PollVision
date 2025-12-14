@@ -42,6 +42,7 @@
 ✨ **Real-time updates** via Socket.io for instant poll results  
 🔐 **Secure authentication** with JWT and bcrypt  
 👥 **Role-based access** for users and administrators  
+🛠️ **Poll ownership** - Users can create and manage their own polls  
 🎨 **Modern UI** with glassmorphism design and smooth animations  
 📊 **Comprehensive analytics** for poll insights  
 ⚡ **Lightning-fast** performance with React 19 and Vite 7
@@ -64,8 +65,10 @@
 
 ### 👤 User Dashboard
 - View all available polls (open and closed)
+- **Create new polls** directly from the dashboard
 - Participate in active polls
 - View personal voting history
+- **Manage own polls** (delete, toggle open/closed status)
 - Profile management with full name and email
 
 ### 👑 Admin Dashboard
@@ -83,6 +86,13 @@
 - Automatic poll closure at scheduled times
 - Background job runs every minute to check closing dates
 - Real-time notifications when polls close
+
+### 🛠️ User Poll Management
+- **Create polls from dashboard** - Users can create their own polls with a Create button
+- **Delete own polls** - Poll creators can delete polls they created
+- **Toggle poll status** - Poll owners can open/close their own polls
+- **Owner controls on poll cards** - Management buttons visible only to poll creators
+- **Full voting access** - Other users maintain voting capabilities on all polls
 
 ### 🚫 Double-Vote Prevention
 - Unique database index prevents duplicate votes
@@ -339,17 +349,19 @@ CORS_ORIGIN=https://your-frontend-domain.com
 | Method | Endpoint | Auth Required | Role | Description |
 |--------|----------|---------------|------|-------------|
 | `GET` | `/api/sondages` | ✅ | Any | Get all polls with voted status |
+| `POST` | `/api/sondages` | ✅ | Any | Create a new poll |
 | `POST` | `/api/vote` | ✅ | Any | Cast a vote on a poll |
 | `GET` | `/api/user/votes` | ✅ | Any | Get user's voting history |
+| `PATCH` | `/api/sondages/:id/status` | ✅ | Owner/Admin | Open or close a poll (owner or admin only) |
+| `DELETE` | `/api/sondages/:id` | ✅ | Owner/Admin | Delete a poll and associated votes (owner or admin only) |
 
-### Poll Management Endpoints (Admin)
+### Poll Management Endpoints (Admin Only)
 
 | Method | Endpoint | Auth Required | Role | Description |
 |--------|----------|---------------|------|-------------|
-| `POST` | `/api/sondages` | ✅ | Admin | Create a new poll |
-| `PATCH` | `/api/sondages/:id/status` | ✅ | Admin | Open or close a poll |
-| `DELETE` | `/api/sondages/:id` | ✅ | Admin | Delete a poll and associated votes |
 | `GET` | `/api/sondages/:id/details` | ✅ | Admin | Get detailed poll analytics |
+
+**Note:** Poll creators (owners) can now create polls and manage their own polls (delete, toggle status). Admin users retain full access to all polls and analytics.
 
 ### Request/Response Examples
 
