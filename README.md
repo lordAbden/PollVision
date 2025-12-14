@@ -42,7 +42,7 @@
 ✨ **Real-time updates** via Socket.io for instant poll results  
 🔐 **Secure authentication** with JWT and bcrypt  
 👥 **Role-based access** for users and administrators  
-🛠️ **Poll ownership** - Users can create and manage their own polls  
+👤 **Poll ownership** - Users can create and manage their own polls  
 🎨 **Modern UI** with glassmorphism design and smooth animations  
 📊 **Comprehensive analytics** for poll insights  
 ⚡ **Lightning-fast** performance with React 19 and Vite 7
