@@ -13,6 +13,7 @@ export default function Dashboard({ user, token, onLogout }) {
     const [selectedPoll, setSelectedPoll] = useState(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [glowingPollId, setGlowingPollId] = useState(null); // Statut pour l'effet de glow
 
     // Pagination & Sorting State
     const [currentPage, setCurrentPage] = useState(1);
@@ -102,7 +103,14 @@ export default function Dashboard({ user, token, onLogout }) {
         socket.on("connect_error", (err) => console.error("🔴 Socket Error:", err));
 
         socket.on("pollListUpdated", fetchPolls);
-        socket.on("pollUpdated", fetchPolls);
+        socket.on("pollUpdated", ({ sondageId }) => {
+            fetchPolls();
+            // Déclencher le flash lumineux pour ce sondage
+            if (sondageId) {
+                setGlowingPollId(sondageId);
+                setTimeout(() => setGlowingPollId(null), 2000); // Reset après 2s
+            }
+        });
 
         return () => {
             socket.off("connect");
@@ -296,6 +304,7 @@ export default function Dashboard({ user, token, onLogout }) {
                                         sondage={sondage}
                                         currentUserId={user ? (user.userId || user.id || user._id) : null} // Pass User ID to Check Ownership
                                         hasVoted={votedIds.includes(sondage._id)}
+                                        isJustVoted={glowingPollId === sondage._id} // Prop pour le glow
                                         onGenericVoteClick={() => setSelectedPoll(sondage)} // Open Modal
                                         onDelete={() => handleDeletePoll(sondage._id)}
                                         onToggleStatus={() => handleToggleStatus(sondage)}
@@ -384,9 +393,37 @@ function StatCard({ icon: Icon, value, label, iconBg, iconColor }) {
     );
 }
 
-function PollCard({ sondage, hasVoted, onGenericVoteClick, onDelete, onToggleStatus, currentUserId, index }) {
+function PollCard({ sondage, hasVoted, isJustVoted, onGenericVoteClick, onDelete, onToggleStatus, currentUserId, index }) {
     const totalVotes = sondage.options.reduce((acc, opt) => acc + opt.votes, 0);
     const isOwner = sondage.createdById && currentUserId && sondage.createdById === currentUserId;
+
+    // Time Pressure Logic
+    const [urgencyState, setUrgencyState] = useState("normal"); // normal, urgent (<10m), critical (<3m)
+
+    useEffect(() => {
+        const checkUrgency = () => {
+            if (sondage.status === "closed" || !sondage.closingDate) {
+                setUrgencyState("normal");
+                return;
+            }
+            const now = new Date();
+            const diff = new Date(sondage.closingDate) - now;
+            const tenMinutes = 10 * 60 * 1000;
+            const threeMinutes = 3 * 60 * 1000;
+
+            if (diff > 0 && diff < threeMinutes) {
+                setUrgencyState("critical");
+            } else if (diff > 0 && diff < tenMinutes) {
+                setUrgencyState("urgent");
+            } else {
+                setUrgencyState("normal");
+            }
+        };
+
+        const interval = setInterval(checkUrgency, 5000); // Check toutes les 5s (plus fréquent)
+        checkUrgency(); // Check initial
+        return () => clearInterval(interval);
+    }, [sondage.closingDate, sondage.status]);
 
     return (
         <motion.div
@@ -395,7 +432,10 @@ function PollCard({ sondage, hasVoted, onGenericVoteClick, onDelete, onToggleSta
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ y: -8, scale: 1.02, transition: { type: "spring", stiffness: 300 } }}
             transition={{ delay: index * 0.1, duration: 0.4 }}
-            className="flex flex-col h-full bg-card/40 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg hover:shadow-2xl transition-all duration-300 ring-1 ring-white/40"
+            className={`flex flex-col h-full bg-card/40 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg hover:shadow-2xl transition-all duration-300 ring-1 ring-white/40 
+            ${isJustVoted ? "glow-vote" : ""} 
+            ${urgencyState === "urgent" ? "glow-urgent" : ""}
+            ${urgencyState === "critical" ? "buzz-critical" : ""}`}
         >
             {/* Header */}
             <div className="flex justify-between items-start mb-4">
