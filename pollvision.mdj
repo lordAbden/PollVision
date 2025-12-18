@@ -1,0 +1,153 @@
+{
+	"_type": "Project",
+	"_id": "AAAAAAFF+h6SjaM2Eis=",
+	"name": "PollVision",
+	"ownedElements": [
+		{
+			"_type": "UMLModel",
+			"_id": "AAAAAAFF+qBWK6M3Z8Y=",
+			"_parent": {
+				"$ref": "AAAAAAFF+h6SjaM2Eis="
+			},
+			"name": "Model",
+			"ownedElements": [
+				{
+					"_type": "UMLClassDiagram",
+					"_id": "AAAAAAFF+qBtyKM79qY=",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "ClassDiagram1",
+					"visible": true,
+					"defaultDiagram": true
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "User_ID",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "User",
+					"attributes": [
+						{ "_type": "UMLAttribute", "_id": "User_nom", "name": "nomUtilisateur", "type": "String" },
+						{ "_type": "UMLAttribute", "_id": "User_pass", "name": "motDePasse", "type": "String" },
+						{ "_type": "UMLAttribute", "_id": "User_email", "name": "email", "type": "String" },
+						{ "_type": "UMLAttribute", "_id": "User_role", "name": "role", "type": "String" }
+					],
+					"ownedElements": [
+						{
+							"_type": "UMLAssociation",
+							"_id": "Assoc_User_Poll",
+							"_parent": { "$ref": "User_ID" },
+							"name": "creates",
+							"end1": {
+								"_type": "UMLAssociationEnd",
+								"_id": "End1_User_Poll",
+								"_parent": { "$ref": "Assoc_User_Poll" },
+								"reference": { "$ref": "User_ID" },
+								"navigable": false
+							},
+							"end2": {
+								"_type": "UMLAssociationEnd",
+								"_id": "End2_User_Poll",
+								"_parent": { "$ref": "Assoc_User_Poll" },
+								"reference": { "$ref": "Poll_ID" },
+								"navigable": true,
+								"multiplicity": "0..*"
+							}
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "Poll_ID",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Poll",
+					"attributes": [
+						{ "_type": "UMLAttribute", "_id": "Poll_q", "name": "question", "type": "String" },
+						{ "_type": "UMLAttribute", "_id": "Poll_s", "name": "status", "type": "String" },
+						{ "_type": "UMLAttribute", "_id": "Poll_creator", "name": "createdBy", "type": "String" }
+					],
+					"ownedElements": [
+						{
+							"_type": "UMLAssociation",
+							"_id": "Assoc_Poll_Option",
+							"_parent": { "$ref": "Poll_ID" },
+							"name": "contains",
+							"end1": {
+								"_type": "UMLAssociationEnd",
+								"_id": "End1_Poll_Opt",
+								"_parent": { "$ref": "Assoc_Poll_Option" },
+								"reference": { "$ref": "Poll_ID" },
+								"navigable": false
+							},
+							"end2": {
+								"_type": "UMLAssociationEnd",
+								"_id": "End2_Poll_Opt",
+								"_parent": { "$ref": "Assoc_Poll_Option" },
+								"reference": { "$ref": "Option_ID" },
+								"navigable": true,
+								"multiplicity": "1..*"
+							}
+						}
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "Option_ID",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Option",
+					"attributes": [
+						{ "_type": "UMLAttribute", "_id": "Opt_label", "name": "label", "type": "String" },
+						{ "_type": "UMLAttribute", "_id": "Opt_votes", "name": "votes", "type": "Integer" }
+					]
+				},
+				{
+					"_type": "UMLClass",
+					"_id": "Vote_ID",
+					"_parent": {
+						"$ref": "AAAAAAFF+qBWK6M3Z8Y="
+					},
+					"name": "Vote",
+					"attributes": [
+						{ "_type": "UMLAttribute", "_id": "Vote_dt", "name": "date", "type": "Date" },
+						{ "_type": "UMLAttribute", "_id": "Vote_idx", "name": "optionIndex", "type": "Integer" }
+					]
+				}
+			]
+		},
+		{
+			"_type": "UMLModel",
+			"_id": "Model_Activity",
+			"_parent": {
+				"$ref": "AAAAAAFF+h6SjaM2Eis="
+			},
+			"name": "ActivityModel",
+			"ownedElements": [
+				{
+					"_type": "UMLActivity",
+					"_id": "Activity1",
+					"_parent": { "$ref": "Model_Activity" },
+					"name": "UserFlow",
+					"nodes": [
+						{ "_type": "UMLInitialNode", "_id": "Init1", "name": "Start" },
+						{ "_type": "UMLAction", "_id": "Action_Login", "name": "Login" },
+						{ "_type": "UMLAction", "_id": "Action_Dashboard", "name": "Browse Dashboard" },
+						{ "_type": "UMLAction", "_id": "Action_Vote", "name": "Cast Vote" },
+						{ "_type": "UMLActivityFinalNode", "_id": "Final1", "name": "End" }
+					],
+					"edges": [
+						{ "_type": "UMLControlFlow", "_id": "Edge1", "source": { "$ref": "Init1" }, "target": { "$ref": "Action_Login" } },
+						{ "_type": "UMLControlFlow", "_id": "Edge2", "source": { "$ref": "Action_Login" }, "target": { "$ref": "Action_Dashboard" } },
+						{ "_type": "UMLControlFlow", "_id": "Edge3", "source": { "$ref": "Action_Dashboard" }, "target": { "$ref": "Action_Vote" } },
+						{ "_type": "UMLControlFlow", "_id": "Edge4", "source": { "$ref": "Action_Vote" }, "target": { "$ref": "Final1" } }
+					]
+				}
+			]
+		}
+	]
+}
