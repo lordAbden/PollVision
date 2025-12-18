@@ -5,6 +5,8 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const http = require("http");
 const { Server } = require("socket.io");
+require("dotenv").config(); // Load environment variables
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 app.use(cors({
@@ -26,6 +28,10 @@ app.use(express.json());
 const uri = "mongodb://127.0.0.1:27017"; // FORCE IPv4
 const client = new MongoClient(uri);
 const JWT_SECRET = "secret_scolaire_super_securise";
+
+// Initialize Gemini AI for content moderation
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Using Flash for speed
 
 let db, utilisateursCollection, sondageCollection, votesCollection;
 
@@ -323,6 +329,31 @@ app.post("/api/sondages", verifyToken, async (req, res) => {
     // Validation basique
     if (!question || !Array.isArray(options) || options.length < 2) {
       return res.status(400).json({ error: "Question et au moins 2 options requises" });
+    }
+
+    // AI Moderation with Gemini
+    try {
+      const optionsText = options.join(", ");
+      const prompt = `Tu es un modérateur de sondages. Analyse la question et les options suivantes. 
+Réponds uniquement par 'SAFE' si le contenu est acceptable, ou 'UNSAFE' s'il contient des insultes, de la haine, du contenu explicite ou inapproprié.
+Question : ${question}
+Options : ${optionsText}`;
+
+      const result = await model.generateContent(prompt);
+      const responseText = result.response.text().trim().toUpperCase();
+
+      if (responseText.includes("UNSAFE")) {
+        console.log(`🚫 Sondage rejeté par l'IA - Question: "${question}"`);
+        return res.status(400).json({
+          error: "Votre sondage a été rejeté par notre système de modération IA pour contenu inapproprié."
+        });
+      }
+
+      console.log(`✅ Sondage approuvé par l'IA - Question: "${question}"`);
+    } catch (aiError) {
+      console.error("⚠️ Erreur Gemini AI:", aiError.message);
+      // Fail-safe: Allow poll creation if AI service fails
+      console.log("⚠️ Modération IA échouée, création du sondage autorisée (fail-safe)");
     }
 
     // Formatage des options

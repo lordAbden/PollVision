@@ -99,6 +99,13 @@
 - Server-side validation for vote integrity
 - Client-side checks for better UX
 
+### 🤖 AI-Powered Content Moderation
+- **Google Gemini AI** integration for automatic content moderation
+- Real-time analysis of poll questions and options
+- Blocks inappropriate, hateful, or explicit content
+- Fail-safe mechanism allows polls if AI service is unavailable
+- Fast moderation using Gemini 1.5 Flash model
+
 ### 📱 Responsive Modern UI
 - **Glassmorphism design** with frosted glass effects
 - **Animated backgrounds** powered by Framer Motion
@@ -137,6 +144,8 @@
 | **jsonwebtoken** | 9.0.3 | JWT authentication implementation |
 | **bcrypt** | 6.0.0 | Password hashing and security |
 | **cors** | 2.8.5 | Cross-Origin Resource Sharing middleware |
+| **@google/generative-ai** | Latest | Google Gemini AI for content moderation |
+| **dotenv** | Latest | Environment variable management |
 
 ### Database
 
@@ -311,13 +320,37 @@ CORS is configured to accept requests from:
 - `http://localhost:5173`
 - `http://127.0.0.1:5173`
 
-### Production Environment Variables
+### Environment Variables Setup
 
-**⚠️ Important for Production:**
+**⚠️ Required for AI Moderation:**
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory:
 
 ```env
+# Google Gemini API Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# MongoDB Configuration
+MONGO_URI=mongodb://127.0.0.1:27017
+
+# JWT Secret
+JWT_SECRET=secret_scolaire_super_securise
+```
+
+**Getting a Gemini API Key:**
+
+1. Visit [Google AI Studio](https://aistudio.google.com/)
+2. Sign in with your Google account
+3. Click "Get API Key" in the left sidebar
+4. Create a new API key or use an existing one
+5. Copy the API key and paste it into your `.env` file
+
+**Production Environment Variables:**
+
+```env
+# Google Gemini API
+GEMINI_API_KEY=your_production_gemini_api_key
+
 # MongoDB Configuration
 MONGODB_URI=mongodb://your-production-mongodb-uri
 
@@ -331,7 +364,7 @@ JWT_SECRET=your-super-secure-random-jwt-secret-here
 CORS_ORIGIN=https://your-frontend-domain.com
 ```
 
-**Note:** Never commit the `.env` file to version control. Add it to `.gitignore`.
+**Note:** Never commit the `.env` file to version control. A `.gitignore` file is included to prevent this.
 
 ---
 
