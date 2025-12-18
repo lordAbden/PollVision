@@ -6,6 +6,19 @@ import ProfileModal from "./ProfileModal";
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
+/**
+ * Render the dashboard UI for managing and interacting with polls.
+ *
+ * Displays statistics, a searchable/filterable paginated list of polls, and controls
+ * to vote, create, delete, or toggle poll status. Manages data fetching, optimistic
+ * vote updates, and socket subscriptions to refresh and highlight updated polls.
+ *
+ * @param {Object} props
+ * @param {Object} props.user - Current user object; used for display and ownership checks (expects fields like `fullName` or `nomUtilisateur` and an identifier in `userId`, `id`, or `_id`).
+ * @param {string} props.token - Authorization token sent with API requests.
+ * @param {Function} props.onLogout - Callback invoked when authentication is invalid or when the user clicks logout.
+ * @returns {JSX.Element} The Dashboard component's rendered UI.
+ */
 export default function Dashboard({ user, token, onLogout }) {
     const [sondages, setSondages] = useState([]);
     const [votedIds, setVotedIds] = useState([]);
@@ -374,6 +387,17 @@ export default function Dashboard({ user, token, onLogout }) {
     );
 }
 
+/**
+ * Render a compact statistic card with an icon, a prominent value, and a label.
+ *
+ * @param {Object} props - Component props.
+ * @param {import('react').ComponentType} props.icon - Icon component to render on the left.
+ * @param {string|number} props.value - Primary value displayed prominently.
+ * @param {string} props.label - Secondary label displayed under the value.
+ * @param {string} [props.iconBg] - Tailwind CSS classes applied to the icon background.
+ * @param {string} [props.iconColor] - Tailwind CSS classes applied to the icon color.
+ * @returns {JSX.Element} The rendered stat card element.
+ */
 function StatCard({ icon: Icon, value, label, iconBg, iconColor }) {
     return (
         <motion.div
@@ -393,6 +417,21 @@ function StatCard({ icon: Icon, value, label, iconBg, iconColor }) {
     );
 }
 
+/**
+ * Render a compact poll card showing question, meta (votes/options), urgency state, and action controls.
+ *
+ * @param {Object} props
+ * @param {Object} props.sondage - Poll object containing fields like _id, question, options, status, dateCreation, closingDate, createdById.
+ * @param {boolean} props.hasVoted - Whether the current user has already voted on this poll.
+ * @param {boolean} props.isJustVoted - Whether the poll was just voted on (triggers a temporary glow effect).
+ * @param {Function} props.onGenericVoteClick - Click handler to open the vote flow for this poll.
+ * @param {Function} props.onDelete - Handler invoked to delete this poll (owner-only control).
+ * @param {Function} props.onToggleStatus - Handler to toggle the poll status between open and closed (owner-only control).
+ * @param {string} [props.currentUserId] - ID of the current user used to determine poll ownership.
+ * @param {number} props.index - Zero-based index used for staggered animation timing.
+ *
+ * @returns {JSX.Element} The rendered poll card element.
+ */
 function PollCard({ sondage, hasVoted, isJustVoted, onGenericVoteClick, onDelete, onToggleStatus, currentUserId, index }) {
     const totalVotes = sondage.options.reduce((acc, opt) => acc + opt.votes, 0);
     const isOwner = sondage.createdById && currentUserId && sondage.createdById === currentUserId;
