@@ -106,10 +106,13 @@ export default function AdminDashboard({ user, token, onLogout }) {
             body: JSON.stringify(pollData),
         });
 
+        const data = await res.json();
+
         if (res.ok) {
             fetchPolls();
         } else {
-            throw new Error("Creation failed");
+            // Throw error with server message for modal to display
+            throw new Error(data.error || "Échec de création du sondage");
         }
     };
 

@@ -8,6 +8,7 @@ export default function CreatePollModal({ onClose, onCreate }) {
     const [closingDate, setClosingDate] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
+    const [moderationStatus, setModerationStatus] = useState(null); // 'reviewing', 'approved', 'rejected'
 
     const handleAddOption = () => {
         setOptions([...options, ""]);
@@ -39,11 +40,28 @@ export default function CreatePollModal({ onClose, onCreate }) {
         }
 
         setIsSubmitting(true);
+        setModerationStatus('reviewing');
+        setError("");
+
         try {
             await onCreate({ question, options, closingDate });
-            onClose();
+
+            // Show success state
+            setModerationStatus('approved');
+
+            // Close modal after brief success message
+            setTimeout(() => {
+                onClose();
+                // Reset states
+                setQuestion("");
+                setOptions(["", ""]);
+                setClosingDate("");
+                setModerationStatus(null);
+                setError("");
+            }, 1500);
         } catch (err) {
-            setError("Échec de création. Réessayez.");
+            setModerationStatus('rejected');
+            setError(err.message || "Échec de création. Réessayez.");
         } finally {
             setIsSubmitting(false);
         }
@@ -82,6 +100,48 @@ export default function CreatePollModal({ onClose, onCreate }) {
                     <div className="px-8 pb-8">
                         <h2 className="text-3xl font-bold text-text-main mb-2">Créer un sondage</h2>
                         <p className="text-text-muted mb-8">Définissez votre question et vos options.</p>
+
+                        {/* AI Moderation Status Feedback */}
+                        {moderationStatus === 'reviewing' && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mb-6 p-4 bg-blue-500/20 border border-blue-500/50 rounded-2xl flex items-center gap-3"
+                            >
+                                <div className="text-2xl animate-spin">🤖</div>
+                                <div>
+                                    <p className="font-semibold text-blue-300">L'IA analyse votre sondage...</p>
+                                    <p className="text-sm text-blue-200">Vérification du contenu en cours</p>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {moderationStatus === 'approved' && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-2xl flex items-center gap-3"
+                            >
+                                <span className="text-2xl">✅</span>
+                                <div>
+                                    <p className="font-semibold text-green-300">Sondage approuvé !</p>
+                                    <p className="text-sm text-green-200">Création en cours...</p>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {moderationStatus === 'rejected' && error && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl"
+                            >
+                                <p className="font-semibold text-red-300 mb-1 flex items-center gap-2">
+                                    <span>❌</span> Sondage rejeté
+                                </p>
+                                <p className="text-sm text-red-200">{error}</p>
+                            </motion.div>
+                        )}
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Question Input */}
@@ -142,12 +202,6 @@ export default function CreatePollModal({ onClose, onCreate }) {
                                 />
                             </div>
 
-                            {error && (
-                                <p className="text-red-500 text-sm bg-red-50 p-3 rounded-xl border border-red-100 text-center">
-                                    {error}
-                                </p>
-                            )}
-
                             {/* Submit Button */}
                             <button
                                 type="submit"
@@ -155,7 +209,10 @@ export default function CreatePollModal({ onClose, onCreate }) {
                                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-purple-600 text-white font-bold text-lg shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isSubmitting ? (
-                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                    <>
+                                        <Loader2 className="w-6 h-6 animate-spin" />
+                                        <span>Création en cours...</span>
+                                    </>
                                 ) : (
                                     "Publier"
                                 )}
